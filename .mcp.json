@@ -3,7 +3,7 @@
     "codemogger": {
       "type": "stdio",
       "command": "bun",
-      "args": ["run", "/Users/glaubercosta/recall/src/mcp.ts"]
+      "args": ["run", "/Users/glaubercosta/recall/bin/codemogger.ts", "mcp"]
     }
   }
 }

@@ -137,7 +137,7 @@ export class CodeIndex {
           filesProcessed++
           chunksCreated += chunks.length
         } catch (e: any) {
-          errors.push({ path: file.absPath, error: e.message ?? String(e) })
+          errors.push(`${file.absPath}: ${e.message ?? String(e)}`)
         }
       }
 

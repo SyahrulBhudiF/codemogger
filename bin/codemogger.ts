@@ -7,7 +7,7 @@ import { formatText } from "../src/format/text.ts"
 
 program
   .name("codemogger")
-  .description("Code indexing library for AI coding agents — semantic search over codebases")
+  .description("Code indexing library for AI coding agents - semantic search over codebases")
   .version("0.2.0")
   .option("--db <path>", "database file path")
 
@@ -104,6 +104,14 @@ program
     } finally {
       await db.close()
     }
+  })
+
+program
+  .command("mcp")
+  .description("Start the MCP server (for Claude Code, OpenCode, etc.)")
+  .action(async () => {
+    const { startMcpServer } = await import("../src/mcp.ts")
+    await startMcpServer(program.opts().db)
   })
 
 program.parse()

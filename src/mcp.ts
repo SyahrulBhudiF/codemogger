@@ -1,21 +1,5 @@
-#!/usr/bin/env bun
 /**
- * codemogger MCP server — exposes code search and indexing as MCP tools.
- *
- * Usage:
- *   bun run src/mcp.ts [--db path/to/codemogger.db]
- *
- * If --db is not specified, uses ~/.config/codemogger/codemogger.db (shared across all projects).
- *
- * Claude Code config (~/.claude/.mcp.json — global, one config for all projects):
- *   {
- *     "mcpServers": {
- *       "codemogger": {
- *         "command": "bun",
- *         "args": ["run", "/path/to/codemogger/src/mcp.ts"]
- *       }
- *     }
- *   }
+ * codemogger MCP server - exposes code search and indexing as MCP tools.
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
@@ -24,15 +8,6 @@ import { z } from "zod"
 import { CodeIndex } from "./index.ts"
 import { localEmbed, LOCAL_MODEL_NAME } from "./embed/local.ts"
 import type { Codebase } from "./db/store.ts"
-
-// Parse --db flag from argv
-function parseDbPath(): string | undefined {
-  const idx = process.argv.indexOf("--db")
-  if (idx !== -1 && idx + 1 < process.argv.length) {
-    return process.argv[idx + 1]
-  }
-  return undefined
-}
 
 const cwd = process.cwd()
 
@@ -46,8 +21,8 @@ function findCurrentCodebase(codebases: Codebase[]): Codebase | undefined {
 /** Build the codemogger_search description dynamically based on index state */
 function buildSearchDescription(current: Codebase | undefined): string {
   const base = `Search an indexed codebase for relevant code. Two modes:
-- "semantic": natural language queries like "how does authentication work?" — uses vector embeddings
-- "keyword": precise identifier lookup like "BTreeCursor" or "handleRequest" — uses full-text search on function/type names
+- "semantic": natural language queries like "how does authentication work?" - uses vector embeddings
+- "keyword": precise identifier lookup like "BTreeCursor" or "handleRequest" - uses full-text search on function/type names
 
 Returns matching code chunks with file path, name, kind, signature, and line numbers.`
 
@@ -59,7 +34,7 @@ Returns matching code chunks with file path, name, kind, signature, and line num
 Use includeSnippet=true to get the full source code of each result, eliminating the need for a separate Read call.`
 
   if (current) {
-    return `This project (${current.rootPath}) is indexed and searchable — ${current.chunkCount} chunks from ${current.fileCount} files.
+    return `This project (${current.rootPath}) is indexed and searchable - ${current.chunkCount} chunks from ${current.fileCount} files.
 
 ${base}
 
@@ -71,117 +46,119 @@ ${usage}`
 ${usage}`
 }
 
-const dbPath = parseDbPath()
-const codeIndex = new CodeIndex({
-  dbPath,
-  embedder: localEmbed,
-  embeddingModel: LOCAL_MODEL_NAME,
-})
-
-// Query indexed codebases at startup so the initial description reflects actual state
-const initialCodebases = await codeIndex.listCodebases()
-const initialCurrent = findCurrentCodebase(initialCodebases)
-
-const server = new McpServer({
-  name: "codemogger",
-  version: "0.1.0",
-})
-
-const searchTool = server.registerTool("codemogger_search", {
-  title: "Search Code Index",
-  description: buildSearchDescription(initialCurrent),
-  inputSchema: {
-    query: z.string().describe("The search query — natural language for semantic mode, identifier/keyword for keyword mode"),
-    mode: z.enum(["semantic", "keyword"]).default("semantic").describe("Search mode: 'semantic' for conceptual queries, 'keyword' for exact identifier lookup"),
-    limit: z.number().int().min(1).max(50).default(10).describe("Maximum number of results to return"),
-    includeSnippet: z.boolean().default(true).describe("Include the full code snippet in results (can be large)"),
-  },
-}, async ({ query, mode, limit, includeSnippet }) => {
-  const results = await codeIndex.search(query, {
-    mode,
-    limit,
-    includeSnippet,
+/** Start the MCP server. Called from the CLI `mcp` subcommand. */
+export async function startMcpServer(dbPath?: string): Promise<void> {
+  const codeIndex = new CodeIndex({
+    dbPath,
+    embedder: localEmbed,
+    embeddingModel: LOCAL_MODEL_NAME,
   })
 
-  if (results.length === 0) {
-    const codebases = await codeIndex.listCodebases()
-    if (codebases.length === 0) {
+  // Query indexed codebases at startup so the initial description reflects actual state
+  const initialCodebases = await codeIndex.listCodebases()
+  const initialCurrent = findCurrentCodebase(initialCodebases)
+
+  const server = new McpServer({
+    name: "codemogger",
+    version: "0.1.0",
+  })
+
+  const searchTool = server.registerTool("codemogger_search", {
+    title: "Search Code Index",
+    description: buildSearchDescription(initialCurrent),
+    inputSchema: {
+      query: z.string().describe("The search query - natural language for semantic mode, identifier/keyword for keyword mode"),
+      mode: z.enum(["semantic", "keyword"]).default("semantic").describe("Search mode: 'semantic' for conceptual queries, 'keyword' for exact identifier lookup"),
+      limit: z.number().int().min(1).max(50).default(10).describe("Maximum number of results to return"),
+      includeSnippet: z.boolean().default(true).describe("Include the full code snippet in results (can be large)"),
+    },
+  }, async ({ query, mode, limit, includeSnippet }) => {
+    const results = await codeIndex.search(query, {
+      mode,
+      limit,
+      includeSnippet,
+    })
+
+    if (results.length === 0) {
+      const codebases = await codeIndex.listCodebases()
+      if (codebases.length === 0) {
+        return {
+          content: [{ type: "text" as const, text: `No codebases are indexed yet. Use codemogger_index to index the codebase directory first, then retry this search. Indexing is a one-time operation.` }],
+        }
+      }
       return {
-        content: [{ type: "text" as const, text: `No codebases are indexed yet. Use codemogger_index to index the codebase directory first, then retry this search. Indexing is a one-time operation.` }],
+        content: [{ type: "text" as const, text: `No results found for "${query}" (mode: ${mode}). Indexed codebases: ${codebases.map(c => c.rootPath).join(", ")}` }],
       }
     }
+
+    const text = results.map((r, i) => {
+      let entry = `${i + 1}. ${r.filePath}:${r.startLine}-${r.endLine}  [${r.kind}] ${r.name}`
+      if (r.signature) entry += `\n   ${r.signature}`
+      if (r.snippet) entry += `\n\`\`\`\n${r.snippet}\n\`\`\``
+      return entry
+    }).join("\n\n")
+
     return {
-      content: [{ type: "text" as const, text: `No results found for "${query}" (mode: ${mode}). Indexed codebases: ${codebases.map(c => c.rootPath).join(", ")}` }],
+      content: [{ type: "text" as const, text }],
     }
-  }
+  })
 
-  const text = results.map((r, i) => {
-    let entry = `${i + 1}. ${r.filePath}:${r.startLine}-${r.endLine}  [${r.kind}] ${r.name}`
-    if (r.signature) entry += `\n   ${r.signature}`
-    if (r.snippet) entry += `\n\`\`\`\n${r.snippet}\n\`\`\``
-    return entry
-  }).join("\n\n")
-
-  return {
-    content: [{ type: "text" as const, text }],
-  }
-})
-
-server.registerTool("codemogger_index", {
-  title: "Index Codebase",
-  description: `Index a directory of source code for later searching. Scans files, parses them with tree-sitter (AST-aware chunking), computes embeddings, and stores everything in a local SQLite database. Supports Rust, C, C++, Go, Python, Zig, Java, Scala, JavaScript, TypeScript, TSX, PHP, and Ruby. Incremental: only re-indexes changed files.
+  server.registerTool("codemogger_index", {
+    title: "Index Codebase",
+    description: `Index a directory of source code for later searching. Scans files, parses them with tree-sitter (AST-aware chunking), computes embeddings, and stores everything in a local SQLite database. Supports Rust, C, C++, Go, Python, Zig, Java, Scala, JavaScript, TypeScript, TSX, PHP, and Ruby. Incremental: only re-indexes changed files.
 
 Call this tool before using codemogger_search if the codebase has not been indexed yet. Once indexed, codemogger_search will be available for fast code navigation.`,
-  inputSchema: {
-    directory: z.string().describe("Absolute path to the directory to index"),
-  },
-}, async ({ directory }) => {
-  const result = await codeIndex.index(directory)
+    inputSchema: {
+      directory: z.string().describe("Absolute path to the directory to index"),
+    },
+  }, async ({ directory }) => {
+    const result = await codeIndex.index(directory)
 
-  // After indexing, update the search tool description to reflect the new state
-  const codebases = await codeIndex.listCodebases()
-  const current = findCurrentCodebase(codebases)
-  searchTool.update({ description: buildSearchDescription(current) })
-  server.sendToolListChanged()
+    // After indexing, update the search tool description to reflect the new state
+    const codebases = await codeIndex.listCodebases()
+    const current = findCurrentCodebase(codebases)
+    searchTool.update({ description: buildSearchDescription(current) })
+    server.sendToolListChanged()
 
-  const text = [
-    `Indexed ${result.files} files → ${result.chunks} chunks`,
-    `Embedded: ${result.embedded}, Skipped: ${result.skipped} unchanged, Removed: ${result.removed} stale`,
-    `Duration: ${result.duration}ms`,
-    result.errors.length > 0 ? `Errors: ${result.errors.join(", ")}` : null,
-  ].filter(Boolean).join("\n")
+    const text = [
+      `Indexed ${result.files} files → ${result.chunks} chunks`,
+      `Embedded: ${result.embedded}, Skipped: ${result.skipped} unchanged, Removed: ${result.removed} stale`,
+      `Duration: ${result.duration}ms`,
+      result.errors.length > 0 ? `Errors: ${result.errors.join(", ")}` : null,
+    ].filter(Boolean).join("\n")
 
-  return {
-    content: [{ type: "text" as const, text }],
-  }
-})
+    return {
+      content: [{ type: "text" as const, text }],
+    }
+  })
 
-server.registerTool("codemogger_reindex", {
-  title: "Reindex Codebase",
-  description: `Update the code index after modifying files. Only re-processes changed files — fast for typical edits.
+  server.registerTool("codemogger_reindex", {
+    title: "Reindex Codebase",
+    description: `Update the code index after modifying files. Only re-processes changed files - fast for typical edits.
 
 IMPORTANT: Call this tool at the end of every task that creates, modifies, or deletes source files. This keeps the search index fresh for future sessions.`,
-  inputSchema: {
-    directory: z.string().describe("Absolute path to the directory to reindex"),
-  },
-}, async ({ directory }) => {
-  const result = await codeIndex.index(directory)
+    inputSchema: {
+      directory: z.string().describe("Absolute path to the directory to reindex"),
+    },
+  }, async ({ directory }) => {
+    const result = await codeIndex.index(directory)
 
-  const codebases = await codeIndex.listCodebases()
-  const current = findCurrentCodebase(codebases)
-  searchTool.update({ description: buildSearchDescription(current) })
-  server.sendToolListChanged()
+    const codebases = await codeIndex.listCodebases()
+    const current = findCurrentCodebase(codebases)
+    searchTool.update({ description: buildSearchDescription(current) })
+    server.sendToolListChanged()
 
-  const parts = [`Reindexed: ${result.files} changed files, ${result.skipped} unchanged`]
-  if (result.removed > 0) parts.push(`Removed: ${result.removed} stale`)
-  parts.push(`Duration: ${result.duration}ms`)
-  if (result.errors.length > 0) parts.push(`Errors: ${result.errors.join(", ")}`)
+    const parts = [`Reindexed: ${result.files} changed files, ${result.skipped} unchanged`]
+    if (result.removed > 0) parts.push(`Removed: ${result.removed} stale`)
+    parts.push(`Duration: ${result.duration}ms`)
+    if (result.errors.length > 0) parts.push(`Errors: ${result.errors.join(", ")}`)
 
-  return {
-    content: [{ type: "text" as const, text: parts.join("\n") }],
-  }
-})
+    return {
+      content: [{ type: "text" as const, text: parts.join("\n") }],
+    }
+  })
 
-// Start the server
-const transport = new StdioServerTransport()
-await server.connect(transport)
+  // Start the server
+  const transport = new StdioServerTransport()
+  await server.connect(transport)
+}

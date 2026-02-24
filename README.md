@@ -14,14 +14,12 @@ codemogger is that library. Embedded SQLite (via [Turso](https://turso.tech)) wi
 
 ## Quick start
 
-Index your codebase and start the MCP server:
-
 ```bash
 # Index a project
-bun run bin/codemogger.ts index ./my-project
+npx codemogger index ./my-project
 
-# Start the MCP server
-bun run src/mcp.ts
+# Search
+npx codemogger search "authentication middleware"
 ```
 
 Add to your coding agent's MCP config (Claude Code, OpenCode, etc.):
@@ -30,8 +28,8 @@ Add to your coding agent's MCP config (Claude Code, OpenCode, etc.):
 {
   "mcpServers": {
     "codemogger": {
-      "command": "bun",
-      "args": ["run", "/path/to/codemogger/src/mcp.ts"]
+      "command": "npx",
+      "args": ["-y", "codemogger", "mcp"]
     }
   }
 }
@@ -167,14 +165,17 @@ ripgrep matches thousands of files on common keywords. codemogger returns the 5 
 ## CLI
 
 ```bash
+# Install globally
+npm install -g codemogger
+
 # Index a directory
-bun run bin/codemogger.ts index ./my-project
+codemogger index ./my-project
 
 # Search
-bun run bin/codemogger.ts search "authentication middleware"
+codemogger search "authentication middleware"
 
 # List indexed codebases
-bun run bin/codemogger.ts list
+codemogger list
 ```
 
 ## Architecture

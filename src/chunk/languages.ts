@@ -1,4 +1,6 @@
-import { join } from "path"
+import { createRequire } from "node:module"
+
+const _require = createRequire(import.meta.url)
 
 export interface LanguageConfig {
   name: string
@@ -13,7 +15,7 @@ export interface LanguageConfig {
 const RUST: LanguageConfig = {
   name: "rust",
   extensions: [".rs"],
-  wasmPath: join("node_modules", "tree-sitter-rust", "tree-sitter-rust.wasm"),
+  wasmPath: _require.resolve("tree-sitter-rust/tree-sitter-rust.wasm"),
   topLevelNodes: [
     "function_item",
     "struct_item",
@@ -32,7 +34,7 @@ const RUST: LanguageConfig = {
 const JAVASCRIPT: LanguageConfig = {
   name: "javascript",
   extensions: [".js", ".jsx", ".mjs", ".cjs"],
-  wasmPath: join("node_modules", "tree-sitter-javascript", "tree-sitter-javascript.wasm"),
+  wasmPath: _require.resolve("tree-sitter-javascript/tree-sitter-javascript.wasm"),
   topLevelNodes: [
     "function_declaration",
     "generator_function_declaration",
@@ -47,7 +49,7 @@ const JAVASCRIPT: LanguageConfig = {
 const TYPESCRIPT: LanguageConfig = {
   name: "typescript",
   extensions: [".ts", ".mts", ".cts"],
-  wasmPath: join("node_modules", "tree-sitter-typescript", "tree-sitter-typescript.wasm"),
+  wasmPath: _require.resolve("tree-sitter-typescript/tree-sitter-typescript.wasm"),
   topLevelNodes: [
     "function_declaration",
     "generator_function_declaration",
@@ -66,7 +68,7 @@ const TYPESCRIPT: LanguageConfig = {
 const TSX: LanguageConfig = {
   name: "tsx",
   extensions: [".tsx"],
-  wasmPath: join("node_modules", "tree-sitter-typescript", "tree-sitter-tsx.wasm"),
+  wasmPath: _require.resolve("tree-sitter-typescript/tree-sitter-tsx.wasm"),
   topLevelNodes: [
     "function_declaration",
     "generator_function_declaration",
@@ -85,7 +87,7 @@ const TSX: LanguageConfig = {
 const C: LanguageConfig = {
   name: "c",
   extensions: [".c", ".h"],
-  wasmPath: join("node_modules", "tree-sitter-c", "tree-sitter-c.wasm"),
+  wasmPath: _require.resolve("tree-sitter-c/tree-sitter-c.wasm"),
   topLevelNodes: [
     "function_definition",
     "declaration",
@@ -101,7 +103,7 @@ const C: LanguageConfig = {
 const PYTHON: LanguageConfig = {
   name: "python",
   extensions: [".py", ".pyi"],
-  wasmPath: join("node_modules", "tree-sitter-python", "tree-sitter-python.wasm"),
+  wasmPath: _require.resolve("tree-sitter-python/tree-sitter-python.wasm"),
   topLevelNodes: [
     "function_definition",
     "class_definition",
@@ -113,7 +115,7 @@ const PYTHON: LanguageConfig = {
 const GO: LanguageConfig = {
   name: "go",
   extensions: [".go"],
-  wasmPath: join("node_modules", "tree-sitter-go", "tree-sitter-go.wasm"),
+  wasmPath: _require.resolve("tree-sitter-go/tree-sitter-go.wasm"),
   topLevelNodes: [
     "function_declaration",
     "method_declaration",
@@ -127,7 +129,7 @@ const GO: LanguageConfig = {
 const ZIG: LanguageConfig = {
   name: "zig",
   extensions: [".zig"],
-  wasmPath: join("node_modules", "@tree-sitter-grammars", "tree-sitter-zig", "tree-sitter-zig.wasm"),
+  wasmPath: _require.resolve("@tree-sitter-grammars/tree-sitter-zig/tree-sitter-zig.wasm"),
   topLevelNodes: [
     "function_declaration",
     "variable_declaration",
@@ -139,7 +141,7 @@ const ZIG: LanguageConfig = {
 const JAVA: LanguageConfig = {
   name: "java",
   extensions: [".java"],
-  wasmPath: join("node_modules", "tree-sitter-java", "tree-sitter-java.wasm"),
+  wasmPath: _require.resolve("tree-sitter-java/tree-sitter-java.wasm"),
   topLevelNodes: [
     "class_declaration",
     "interface_declaration",
@@ -152,7 +154,7 @@ const JAVA: LanguageConfig = {
 const SCALA: LanguageConfig = {
   name: "scala",
   extensions: [".scala", ".sc"],
-  wasmPath: join("node_modules", "tree-sitter-scala", "tree-sitter-scala.wasm"),
+  wasmPath: _require.resolve("tree-sitter-scala/tree-sitter-scala.wasm"),
   topLevelNodes: [
     "class_definition",
     "object_definition",
@@ -166,7 +168,7 @@ const SCALA: LanguageConfig = {
 const CPP: LanguageConfig = {
   name: "cpp",
   extensions: [".cpp", ".cc", ".cxx", ".hpp", ".hh", ".hxx"],
-  wasmPath: join("node_modules", "tree-sitter-cpp", "tree-sitter-cpp.wasm"),
+  wasmPath: _require.resolve("tree-sitter-cpp/tree-sitter-cpp.wasm"),
   topLevelNodes: [
     "function_definition",
     "class_specifier",
@@ -182,7 +184,7 @@ const CPP: LanguageConfig = {
 const PHP: LanguageConfig = {
   name: "php",
   extensions: [".php"],
-  wasmPath: join("node_modules", "tree-sitter-php", "tree-sitter-php_only.wasm"),
+  wasmPath: _require.resolve("tree-sitter-php/tree-sitter-php_only.wasm"),
   topLevelNodes: [
     "class_declaration",
     "interface_declaration",
@@ -196,7 +198,7 @@ const PHP: LanguageConfig = {
 const RUBY: LanguageConfig = {
   name: "ruby",
   extensions: [".rb"],
-  wasmPath: join("node_modules", "tree-sitter-ruby", "tree-sitter-ruby.wasm"),
+  wasmPath: _require.resolve("tree-sitter-ruby/tree-sitter-ruby.wasm"),
   topLevelNodes: [
     "module",
     "class",

@@ -1,6 +1,5 @@
 import { Parser, Language } from "web-tree-sitter"
 import type { Node as SyntaxNode } from "web-tree-sitter"
-import { resolve } from "path"
 import type { CodeChunk } from "./types.ts"
 import type { LanguageConfig } from "./languages.ts"
 
@@ -24,7 +23,7 @@ async function ensureParser(): Promise<Parser> {
 async function getLanguage(config: LanguageConfig): Promise<Language> {
   let lang = loadedLanguages.get(config.name)
   if (!lang) {
-    const wasmPath = resolve(config.wasmPath)
+    const wasmPath = config.wasmPath
     lang = await Language.load(wasmPath)
     loadedLanguages.set(config.name, lang)
   }
@@ -170,6 +169,7 @@ export async function chunkFile(
   p.setLanguage(lang)
 
   const tree = p.parse(content)
+  if (!tree) return []
   const sourceLines = content.split("\n")
   const chunks: CodeChunk[] = []
 

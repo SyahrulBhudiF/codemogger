@@ -2,22 +2,30 @@
   "name": "codemogger",
   "version": "0.1.0",
   "description": "Code indexing library with tree-sitter chunking and vector+FTS search for AI coding agents",
-  "module": "src/index.ts",
-  "main": "src/index.ts",
   "type": "module",
-  "bin": {
-    "codemogger": "bin/codemogger.ts",
-    "codemogger-mcp": "src/mcp.ts"
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
+  "bin": {
+    "codemogger": "dist/cli.mjs"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "test": "bun test",
-    "bench": "bun run bin/codemogger.ts bench"
+    "build": "tsc -p tsconfig.build.json && bun build bin/codemogger.ts --target node --external @tursodatabase/database --external @modelcontextprotocol/sdk --external @huggingface/transformers --external zod --external commander --external web-tree-sitter --external tree-sitter-rust --external tree-sitter-javascript --external tree-sitter-typescript --external tree-sitter-c --external tree-sitter-cpp --external tree-sitter-python --external tree-sitter-go --external tree-sitter-java --external tree-sitter-scala --external tree-sitter-php --external tree-sitter-ruby --external @tree-sitter-grammars/tree-sitter-zig --outfile dist/cli.mjs && node -e \"let f=require('fs');let c=f.readFileSync('dist/cli.mjs','utf8');f.writeFileSync('dist/cli.mjs',c.replace('#!/usr/bin/env bun','#!/usr/bin/env node'))\"",
+    "prepublishOnly": "bun run build",
+    "test": "bun test"
   },
   "devDependencies": {
-    "@types/bun": "latest",
-    "tree-sitter-javascript": "^0.25.0",
-    "tree-sitter-rust": "^0.24.0",
-    "tree-sitter-typescript": "^0.23.2"
+    "@types/bun": "latest"
   },
   "peerDependencies": {
     "typescript": "^5"
@@ -32,10 +40,13 @@
     "tree-sitter-cpp": "^0.23.4",
     "tree-sitter-go": "^0.25.0",
     "tree-sitter-java": "^0.23.5",
+    "tree-sitter-javascript": "^0.25.0",
     "tree-sitter-php": "^0.24.2",
     "tree-sitter-python": "^0.25.0",
     "tree-sitter-ruby": "^0.23.1",
+    "tree-sitter-rust": "^0.24.0",
     "tree-sitter-scala": "^0.24.0",
+    "tree-sitter-typescript": "^0.23.2",
     "web-tree-sitter": "^0.26.5",
     "zod": "^4.3.6"
   }
