@@ -16,14 +16,22 @@ As AI coding tools become more composable - agents calling agents, MCP servers p
 
 codemogger is that library. Embedded SQLite (via [Turso](https://turso.tech)) with FTS + vector search in a single `.db` file.
 
+## Install
+
+```bash
+npm install -g codemogger
+```
+
+Or use `npx` to run without installing.
+
 ## Quick start
 
 ```bash
 # Index a project
-npx codemogger index ./my-project
+codemogger index ./my-project
 
 # Search
-npx codemogger search "authentication middleware"
+codemogger search "authentication middleware"
 ```
 
 Add to your coding agent's MCP config (Claude Code, OpenCode, etc.):
