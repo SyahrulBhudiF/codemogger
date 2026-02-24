@@ -195,6 +195,22 @@ const PHP: LanguageConfig = {
   splitNodes: ["class_declaration", "interface_declaration", "trait_declaration"],
 }
 
+const CSHARP: LanguageConfig = {
+  name: "c_sharp",
+  extensions: [".cs"],
+  wasmPath: _require.resolve("tree-sitter-c-sharp/tree-sitter-c_sharp.wasm"),
+  topLevelNodes: [
+    "class_declaration",
+    "interface_declaration",
+    "struct_declaration",
+    "enum_declaration",
+    "record_declaration",
+    "method_declaration",
+    "namespace_declaration",
+  ],
+  splitNodes: ["class_declaration", "interface_declaration", "struct_declaration", "namespace_declaration"],
+}
+
 const RUBY: LanguageConfig = {
   name: "ruby",
   extensions: [".rb"],
@@ -209,7 +225,7 @@ const RUBY: LanguageConfig = {
   splitNodes: ["module", "class"],
 }
 
-const LANGUAGES: LanguageConfig[] = [RUST, JAVASCRIPT, TYPESCRIPT, TSX, C, CPP, PYTHON, GO, ZIG, JAVA, SCALA, PHP, RUBY]
+const LANGUAGES: LanguageConfig[] = [RUST, JAVASCRIPT, TYPESCRIPT, TSX, C, CPP, CSHARP, PYTHON, GO, ZIG, JAVA, SCALA, PHP, RUBY]
 
 const EXT_MAP = new Map<string, LanguageConfig>()
 for (const lang of LANGUAGES) {
