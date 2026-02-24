@@ -75,6 +75,22 @@ await db.close()
 
 The MCP server and CLI ship with `all-MiniLM-L6-v2` by default.
 
+## CLI
+
+```bash
+# Install globally
+npm install -g codemogger
+
+# Index a directory
+codemogger index ./my-project
+
+# Search
+codemogger search "authentication middleware"
+
+# List indexed codebases
+codemogger list
+```
+
 ## How it works
 
 1. **Scan** - walk directory, respect `.gitignore`, detect language from extension
@@ -161,22 +177,6 @@ The real advantage isn't speed - it's **finding the right code when you don't kn
 | `function proveHealthCheckNodePortDeallocated` - pkg/registry/core/service/storage/storage_test.go | |
 
 ripgrep matches thousands of files on common keywords. codemogger returns the 5 most relevant definitions.
-
-## CLI
-
-```bash
-# Install globally
-npm install -g codemogger
-
-# Index a directory
-codemogger index ./my-project
-
-# Search
-codemogger search "authentication middleware"
-
-# List indexed codebases
-codemogger list
-```
 
 ## Architecture
 
