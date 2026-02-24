@@ -1,15 +1,22 @@
 #!/usr/bin/env bun
 import { program } from "commander"
-import { CodeIndex, type SearchMode } from "../src/index.ts"
+import { CodeIndex, projectDbPath, type SearchMode } from "../src/index.ts"
 import { localEmbed, LOCAL_MODEL_NAME } from "../src/embed/local.ts"
 import { formatJson } from "../src/format/json.ts"
 import { formatText } from "../src/format/text.ts"
+
+/** Resolve DB path: --db flag overrides, otherwise per-project default */
+function resolveDbPath(dir?: string): string {
+  const explicit = program.opts().db
+  if (explicit) return explicit
+  return projectDbPath(dir ?? process.cwd())
+}
 
 program
   .name("codemogger")
   .description("Code indexing library for AI coding agents - semantic search over codebases")
   .version("0.2.0")
-  .option("--db <path>", "database file path")
+  .option("--db <path>", "database file path (default: <project>/.codemogger/index.db)")
 
 program
   .command("index")
@@ -18,7 +25,8 @@ program
   .option("--language <lang>", "filter by language (e.g. rust, typescript)")
   .option("--verbose", "show detailed indexing progress")
   .action(async (dir: string, opts: { language?: string; verbose?: boolean }) => {
-    const db = new CodeIndex({ dbPath: program.opts().db, embedder: localEmbed, embeddingModel: LOCAL_MODEL_NAME })
+    const dbPath = resolveDbPath(dir)
+    const db = new CodeIndex({ dbPath, embedder: localEmbed, embeddingModel: LOCAL_MODEL_NAME })
     try {
       const result = await db.index(dir, {
         languages: opts.language ? [opts.language] : undefined,
@@ -54,7 +62,8 @@ program
   .option("--snippet", "include code snippet in output")
   .option("--mode <mode>", "search mode: semantic|keyword|hybrid", "semantic")
   .action(async (query: string, opts: { limit: string; threshold: string; format: string; snippet?: boolean; mode: string }) => {
-    const db = new CodeIndex({ dbPath: program.opts().db, embedder: localEmbed, embeddingModel: LOCAL_MODEL_NAME })
+    const dbPath = resolveDbPath()
+    const db = new CodeIndex({ dbPath, embedder: localEmbed, embeddingModel: LOCAL_MODEL_NAME })
     try {
       const start = performance.now()
       const results = await db.search(query, {
@@ -84,7 +93,8 @@ program
   .description("List all indexed files")
   .option("--format <fmt>", "output format: json|text", "text")
   .action(async (opts: { format: string }) => {
-    const db = new CodeIndex({ dbPath: program.opts().db, embedder: localEmbed, embeddingModel: LOCAL_MODEL_NAME })
+    const dbPath = resolveDbPath()
+    const db = new CodeIndex({ dbPath, embedder: localEmbed, embeddingModel: LOCAL_MODEL_NAME })
     try {
       const files = await db.listFiles()
 

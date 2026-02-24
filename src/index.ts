@@ -37,18 +37,18 @@ export interface IndexResult {
 }
 
 export interface CodeIndexOptions {
-  dbPath?: string
+  dbPath: string
   /** Embedding function - SDK users must provide their own */
   embedder: Embedder
   /** Model name stored alongside embeddings (e.g. "all-MiniLM-L6-v2") */
   embeddingModel: string
 }
 
-function defaultDbPath(): string {
-  const home = process.env.HOME ?? process.env.USERPROFILE ?? "."
-  const dir = join(home, ".config", "codemogger")
-  mkdirSync(dir, { recursive: true })
-  return join(dir, "codemogger.db")
+/** Compute the default DB path for a project directory: <dir>/.codemogger/index.db */
+export function projectDbPath(dir: string): string {
+  const dbDir = join(resolve(dir), ".codemogger")
+  mkdirSync(dbDir, { recursive: true })
+  return join(dbDir, "index.db")
 }
 
 export class CodeIndex {
@@ -59,7 +59,7 @@ export class CodeIndex {
   private searchVerified = false
 
   constructor(opts: CodeIndexOptions) {
-    this.dbPath = opts.dbPath ?? defaultDbPath()
+    this.dbPath = opts.dbPath
     this.embedder = opts.embedder
     this.embeddingModel = opts.embeddingModel
   }

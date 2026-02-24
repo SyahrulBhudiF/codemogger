@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="codemogger.png" alt="codemogger" width="200">
+</p>
+
 # codemogger
 
 Code indexing library for AI coding agents. Parses source code with tree-sitter, chunks it into semantic units (functions, structs, classes, impl blocks), embeds them locally, and stores everything in a single SQLite file with vector + full-text search.

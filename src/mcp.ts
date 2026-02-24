@@ -5,7 +5,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod"
-import { CodeIndex } from "./index.ts"
+import { CodeIndex, projectDbPath } from "./index.ts"
 import { localEmbed, LOCAL_MODEL_NAME } from "./embed/local.ts"
 import type { Codebase } from "./db/store.ts"
 
@@ -49,7 +49,7 @@ ${usage}`
 /** Start the MCP server. Called from the CLI `mcp` subcommand. */
 export async function startMcpServer(dbPath?: string): Promise<void> {
   const codeIndex = new CodeIndex({
-    dbPath,
+    dbPath: dbPath ?? projectDbPath(cwd),
     embedder: localEmbed,
     embeddingModel: LOCAL_MODEL_NAME,
   })
