@@ -1,6 +1,6 @@
 {
   "name": "codemogger",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Code indexing library with tree-sitter chunking and vector+FTS search for AI coding agents",
   "type": "module",
   "main": "dist/index.js",
@@ -14,8 +14,13 @@
   "bin": {
     "codemogger": "dist/cli.mjs"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/glommer/codemogger"
+  },
   "files": [
     "dist",
+    "codemogger.png",
     "README.md",
     "LICENSE"
   ],
