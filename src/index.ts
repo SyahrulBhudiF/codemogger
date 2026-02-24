@@ -118,7 +118,7 @@ export class CodeIndex {
       return text
     }
 
-    // Process in streaming batches: chunk → write → embed per batch
+    // Process in streaming batches: chunk → write
     const FILE_BATCH = 200
     const EMBED_BATCH = 64
     let embedded = 0
@@ -132,7 +132,8 @@ export class CodeIndex {
         const langConfig = detectLanguage(file.absPath)
         if (!langConfig) continue
         try {
-          const chunks = await chunkFile(file.absPath, file.content, file.hash, langConfig)
+          const content = await Bun.file(file.absPath).text()
+          const chunks = await chunkFile(file.absPath, content, file.hash, langConfig)
           batchChunks.push({ filePath: file.absPath, fileHash: file.hash, chunks })
           filesProcessed++
           chunksCreated += chunks.length
@@ -145,29 +146,33 @@ export class CodeIndex {
       if (batchChunks.length > 0) {
         await store.batchUpsertAllFileChunks(codebaseId, batchChunks)
       }
+    }
 
-      // Embed this batch
-      const stale = await store.getStaleEmbeddings(codebaseId, this.embeddingModel)
-      if (stale.length > 0) {
-        for (let i = 0; i < stale.length; i += EMBED_BATCH) {
-          const slice = stale.slice(i, i + EMBED_BATCH)
-          const texts = slice.map(buildEmbedText)
-          const vectors = await this.embedder(texts)
-          await store.batchUpsertEmbeddings(
-            slice.map((s, j) => ({
-              chunkKey: s.chunkKey,
-              embedding: vectors[j],
-              modelName: this.embeddingModel,
-            }))
-          )
-          embedded += vectors.length
-        }
+    // Phase 3: Embed everything stale (in chunks to avoid OOM)
+    while (true) {
+      const stale = await store.getStaleEmbeddings(codebaseId, this.embeddingModel, 1000)
+      if (stale.length === 0) break
+
+      for (let i = 0; i < stale.length; i += EMBED_BATCH) {
+        const slice = stale.slice(i, i + EMBED_BATCH)
+        const texts = slice.map(buildEmbedText)
+        const vectors = await this.embedder(texts)
+        await store.batchUpsertEmbeddings(
+          slice.map((s, j) => ({
+            chunkKey: s.chunkKey,
+            embedding: vectors[j]!,
+            modelName: this.embeddingModel,
+          }))
+        )
+        embedded += vectors.length
       }
+
+      if (stale.length < 1000) break
     }
 
     const chunkAndEmbedTime = Math.round(performance.now() - t1)
 
-    // Phase 3: Remove chunks for deleted files
+    // Phase 4: Remove chunks for deleted files
     const removed = await store.removeStaleFiles(codebaseId, activeFiles)
 
     // Phase 5: Build per-codebase FTS table
@@ -211,7 +216,7 @@ export class CodeIndex {
     await this.verifySearchable(store)
 
     if (mode === "semantic") {
-      const [queryVec] = await this.embedder([query])
+      const [queryVec] = await this.embedder([query]) as [number[]]
       const results = await store.vectorSearch(queryVec, limit, includeSnippet)
       return threshold > 0 ? results.filter((r) => r.score >= threshold) : results
     }
@@ -227,7 +232,7 @@ export class CodeIndex {
     }
 
     // Hybrid: combine keyword + semantic via RRF
-    const [queryVec] = await this.embedder([query])
+    const [queryVec] = await this.embedder([query]) as [number[]]
     const vecResults = await store.vectorSearch(queryVec, limit, includeSnippet)
     const merged = rrfMerge(ftsResults, vecResults, limit)
     return threshold > 0 ? merged.filter((r) => r.score >= threshold) : merged

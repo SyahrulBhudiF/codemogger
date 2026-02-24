@@ -25,25 +25,25 @@ export function rrfMerge(
   const data = new Map<string, SearchResult>()
 
   for (let i = 0; i < ftsResults.length; i++) {
-    const r = ftsResults[i]
-    scores.set(r.name, (scores.get(r.name) ?? 0) + ftsWeight / (k + i + 1))
-    data.set(r.name, r)
+    const r = ftsResults[i]!
+    scores.set(r.chunkKey, (scores.get(r.chunkKey) ?? 0) + ftsWeight / (k + i + 1))
+    data.set(r.chunkKey, r)
   }
 
   for (let i = 0; i < vecResults.length; i++) {
-    const r = vecResults[i]
-    scores.set(r.name, (scores.get(r.name) ?? 0) + vecWeight / (k + i + 1))
+    const r = vecResults[i]!
+    scores.set(r.chunkKey, (scores.get(r.chunkKey) ?? 0) + vecWeight / (k + i + 1))
     // Prefer FTS row data (has BM25 score) but fill in from vector if not present
-    if (!data.has(r.name)) {
-      data.set(r.name, r)
+    if (!data.has(r.chunkKey)) {
+      data.set(r.chunkKey, r)
     }
   }
 
   return Array.from(scores.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, limit)
-    .map(([name, score]) => {
-      const row = data.get(name)!
+    .map(([key, score]) => {
+      const row = data.get(key)!
       return { ...row, score }
     })
 }

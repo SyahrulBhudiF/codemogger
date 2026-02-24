@@ -9,11 +9,10 @@ export interface ScannedFile {
   /** Path relative to the indexed root */
   relPath: string
   language: string
-  content: string
   hash: string
 }
 
-/** Patterns to always ignore */
+/** Directory names to always ignore */
 const ALWAYS_IGNORE = new Set([
   ".git", "node_modules", "target", "build", "dist", ".next",
   "__pycache__", ".tox", ".venv", "venv", ".mypy_cache",
@@ -86,10 +85,11 @@ export async function scanDirectory(
       if (langFilter && !langFilter.has(langConfig.name)) continue
 
       try {
-        const content = await readFile(fullPath, "utf-8")
+        const stats = await stat(fullPath)
         // Skip empty files and very large files (>1MB)
-        if (content.length === 0 || content.length > 1_000_000) continue
+        if (stats.size === 0 || stats.size > 1_000_000) continue
 
+        const content = await readFile(fullPath)
         const hash = createHash("sha256").update(content).digest("hex")
         const relPath = relative(rootDir, fullPath)
 
@@ -97,7 +97,6 @@ export async function scanDirectory(
           absPath: fullPath,
           relPath,
           language: langConfig.name,
-          content,
           hash,
         })
       } catch (err) {
