@@ -3,7 +3,17 @@ import { rrfMerge } from "../src/search/rank.ts"
 import type { SearchResult } from "../src/db/store.ts"
 
 function result(name: string, score = 1): SearchResult {
-  return { name, description: `${name} desc`, location: `/skills/${name}`, score }
+  return {
+    chunkKey: name,
+    filePath: `/src/${name}.ts`,
+    name,
+    kind: "function",
+    signature: `function ${name}()`,
+    snippet: `function ${name}() { /* ... */ }`,
+    startLine: 1,
+    endLine: 5,
+    score,
+  }
 }
 
 describe("rrfMerge", () => {
@@ -18,10 +28,10 @@ describe("rrfMerge", () => {
     //   b: 0.4/62 + 0.6/61 (vec rank 1 is worth more)
     //   a: 0.4/61 + 0.6/62
     // b wins because vector weight is higher and b is vec #1
-    const topTwo = new Set([merged[0].name, merged[1].name])
+    const topTwo = new Set([merged[0]!.name, merged[1]!.name])
     expect(topTwo.has("a")).toBe(true)
     expect(topTwo.has("b")).toBe(true)
-    expect(merged[0].score).toBeGreaterThan(merged[2].score)
+    expect(merged[0]!.score).toBeGreaterThan(merged[2]!.score)
     expect(merged.length).toBe(4)
   })
 
@@ -38,7 +48,7 @@ describe("rrfMerge", () => {
     const merged = rrfMerge([], vec, 5)
 
     expect(merged.length).toBe(2)
-    expect(merged[0].name).toBe("a")
+    expect(merged[0]!.name).toBe("a")
   })
 
   it("handles empty vector results", () => {
@@ -46,7 +56,7 @@ describe("rrfMerge", () => {
     const merged = rrfMerge(fts, [], 5)
 
     expect(merged.length).toBe(2)
-    expect(merged[0].name).toBe("a")
+    expect(merged[0]!.name).toBe("a")
   })
 
   it("handles both empty", () => {

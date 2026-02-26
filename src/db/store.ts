@@ -10,6 +10,7 @@ import {
 import type { CodeChunk } from "../chunk/types.ts"
 
 export interface SearchResult {
+  chunkKey: string
   filePath: string
   name: string
   kind: string
@@ -197,16 +198,23 @@ export class Store {
       "SELECT file_path FROM indexed_files WHERE codebase_id = ?"
     ).all(codebaseId) as { file_path: string }[]
     let removed = 0
-    for (const row of all) {
-      if (!activeFiles.has(row.file_path)) {
-        await this.db.prepare(
-          "DELETE FROM chunks WHERE codebase_id = ? AND file_path = ?"
-        ).run(codebaseId, row.file_path)
-        await this.db.prepare(
-          "DELETE FROM indexed_files WHERE codebase_id = ? AND file_path = ?"
-        ).run(codebaseId, row.file_path)
-        removed++
+    await this.db.exec("BEGIN")
+    try {
+      for (const row of all) {
+        if (!activeFiles.has(row.file_path)) {
+          await this.db.prepare(
+            "DELETE FROM chunks WHERE codebase_id = ? AND file_path = ?"
+          ).run(codebaseId, row.file_path)
+          await this.db.prepare(
+            "DELETE FROM indexed_files WHERE codebase_id = ? AND file_path = ?"
+          ).run(codebaseId, row.file_path)
+          removed++
+        }
       }
+      await this.db.exec("COMMIT")
+    } catch (e) {
+      await this.db.exec("ROLLBACK")
+      throw e
     }
     return removed
   }
@@ -232,11 +240,15 @@ export class Store {
   }
 
   /** Get chunks that need (re-)embedding (scoped to codebase) */
-  async getStaleEmbeddings(codebaseId: number, modelName: string): Promise<{ chunkKey: string; name: string; signature: string; filePath: string; kind: string; snippet: string }[]> {
-    const rows = await this.db.prepare(
-      `SELECT chunk_key, name, signature, file_path, kind, snippet FROM chunks
-       WHERE codebase_id = ? AND (embedding IS NULL OR embedding_model != ?)`
-    ).all(codebaseId, modelName) as any[]
+  async getStaleEmbeddings(codebaseId: number, modelName: string, limit?: number): Promise<{ chunkKey: string; name: string; signature: string; filePath: string; kind: string; snippet: string }[]> {
+    const sql = limit 
+      ? `SELECT chunk_key, name, signature, file_path, kind, snippet FROM chunks
+         WHERE codebase_id = ? AND (embedding IS NULL OR embedding_model != ?)
+         LIMIT ${limit}`
+      : `SELECT chunk_key, name, signature, file_path, kind, snippet FROM chunks
+         WHERE codebase_id = ? AND (embedding IS NULL OR embedding_model != ?)`
+    
+    const rows = await this.db.prepare(sql).all(codebaseId, modelName) as any[]
     return rows.map(r => ({
       chunkKey: r.chunk_key,
       name: r.name,
@@ -269,13 +281,13 @@ export class Store {
   async vectorSearch(queryEmbedding: number[], limit: number, includeSnippet: boolean): Promise<SearchResult[]> {
     const json = JSON.stringify(queryEmbedding)
     const sql = includeSnippet
-      ? `SELECT file_path, name, kind, signature, snippet, start_line, end_line,
+      ? `SELECT chunk_key, file_path, name, kind, signature, snippet, start_line, end_line,
                 vector_distance_cos(embedding, vector8(?)) AS distance
          FROM chunks
          WHERE embedding IS NOT NULL
          ORDER BY distance ASC
          LIMIT ?`
-      : `SELECT file_path, name, kind, signature, start_line, end_line,
+      : `SELECT chunk_key, file_path, name, kind, signature, start_line, end_line,
                 vector_distance_cos(embedding, vector8(?)) AS distance
          FROM chunks
          WHERE embedding IS NOT NULL
@@ -285,6 +297,7 @@ export class Store {
     const rows = await this.db.prepare(sql).all(json, limit) as any[]
 
     return rows.map((row) => ({
+      chunkKey: row.chunk_key,
       filePath: row.file_path,
       name: row.name,
       kind: row.kind,
@@ -324,13 +337,14 @@ export class Store {
 
         for (const { chunk_id, score } of scores) {
           const dataSql = includeSnippet
-            ? `SELECT file_path, name, kind, signature, snippet, start_line, end_line FROM chunks WHERE id = ?`
-            : `SELECT file_path, name, kind, signature, start_line, end_line FROM chunks WHERE id = ?`
+            ? `SELECT chunk_key, file_path, name, kind, signature, snippet, start_line, end_line FROM chunks WHERE id = ?`
+            : `SELECT chunk_key, file_path, name, kind, signature, start_line, end_line FROM chunks WHERE id = ?`
 
           const row = await this.db.prepare(dataSql).get(chunk_id) as any
           if (!row) continue
 
           allResults.push({
+            chunkKey: row.chunk_key,
             filePath: row.file_path,
             name: row.name,
             kind: row.kind,

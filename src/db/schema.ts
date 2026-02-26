@@ -50,7 +50,7 @@ export function createFtsTableSQL(codebaseId: number): string {
   const table = ftsTableName(codebaseId)
   return `
 CREATE TABLE IF NOT EXISTS ${table} (
-    chunk_id    INTEGER NOT NULL REFERENCES chunks(id),
+    chunk_id    INTEGER NOT NULL REFERENCES chunks(id) ON DELETE CASCADE,
     name        TEXT NOT NULL DEFAULT '',
     signature   TEXT NOT NULL DEFAULT ''
 )
